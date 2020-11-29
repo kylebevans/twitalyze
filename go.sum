@@ -6,6 +6,8 @@ github.com/bbalet/stopwords v1.0.0 h1:0TnGycCtY0zZi4ltKoOGRFIlZHv0WqpoIGUsObjztf
 github.com/bbalet/stopwords v1.0.0/go.mod h1:sAWrQoDMfqARGIn4s6dp7OW7ISrshUD8IP2q3KoqPjc=
 github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
+github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
 github.com/kylebevans/twitapi v0.0.0-20201127043348-4f167e05ad28 h1:NOSxW1YreWctqA1cko7uWwh01CtN510X3uTcEzHslck=
 github.com/kylebevans/twitapi v0.0.0-20201127043348-4f167e05ad28/go.mod h1:8g2VqP6WKACujfiZS6xj2mAtlvtvsDOo/IXk0X+Vm24=
 github.com/kylebevans/twitapi v0.0.0-20201127053510-fe6717ad04d9 h1:A4ea95ipkx+6Xstba9zOekfxq5onnwcwO0PRJuT7/4M=

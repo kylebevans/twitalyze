@@ -6,14 +6,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/antihax/optional"
 	"github.com/bbalet/stopwords"
+	"github.com/gorilla/mux"
 	"github.com/kylebevans/twitapi"
 )
 
@@ -45,7 +50,8 @@ func SeedData(ctx context.Context, s string, apiClient *twitapi.APIClient, w *Wo
 		tweets, _, err = apiClient.SearchApi.TweetsRecentSearch(ctx, s, searchOpts)
 
 		if err != nil {
-			panic(err)
+			log.Printf("Could not seed data: %v", err)
+			return
 		}
 
 		for _, v := range tweets.Data {
@@ -65,12 +71,15 @@ func PrintTweet(tweet twitapi.FilteredStreamingTweet) {
 
 // ParseTweet removes stop words from a tweet and increments the WordValues for each word.
 func ParseTweet(tweet string, w *WordValues) {
-	cleanTweet := stopwords.CleanString(tweet, "en", false)
+	re, _ := regexp.Compile(`@.+? `) // remove @username words.
+	cleanTweet := re.ReplaceAllString(tweet, "")
+	cleanTweet = stopwords.CleanString(cleanTweet, "en", false) // remove words like "the"
+	cleanTweet = strings.ToLower(cleanTweet)
 	tweetTokens := strings.Split(cleanTweet, " ")
 
 	for _, v := range tweetTokens {
 		// Discard words above 16 letters, below 3 letters, and several undesirable words.
-		if len(v) > 16 || len(v) < 3 || v == "terraform" || v == "cloud" || v == "" || v == "https" {
+		if len(v) > 16 || len(v) < 3 || v == "terraform" || v == "cloud" || v == "" || v == "https" || v == "'terraform" || v == "hashicorp" {
 			continue
 		}
 		w.Lock()
@@ -107,15 +116,15 @@ func StreamTweets(ctx context.Context, s string, apiClient *twitapi.APIClient, f
 	}
 	delResp, _, err = apiClient.TweetsApi.AddOrDeleteRules(ctx, ruleIds, nil)
 	if err != nil {
-		fmt.Println(ruleIds)
-		fmt.Println(delResp)
+		log.Println(ruleIds)
+		log.Println(delResp)
 		panic(err)
 	}
 
 	// Add new rule.
 	_, _, err = apiClient.TweetsApi.AddOrDeleteRules(ctx, ruleReq, nil)
 	if err != nil {
-		fmt.Printf("Unable to add search filter rule: %v", s)
+		log.Printf("Unable to add search filter rule: %v", s)
 		panic(err)
 	}
 
@@ -132,8 +141,43 @@ func StreamTweets(ctx context.Context, s string, apiClient *twitapi.APIClient, f
 			tweet = <-tweets
 			f(tweet.Data.Text, w) //Call tweet processing function.
 		}
-		fmt.Println(err)
+		log.Println(err)
 	}
+}
+
+// SaveData saves the data to seed.conf every 10 minutes.
+func SaveData(w *WordValues) {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			w.RLock()
+			outdata, err := json.Marshal(w)
+			w.RUnlock()
+			if err != nil {
+				log.Printf("Unable to save word values to seed file: %v", err)
+			} else {
+				err = ioutil.WriteFile("seed.conf", outdata, 0644)
+				if err != nil {
+					log.Printf("Unable to save word values to seed file: %v", err)
+				}
+			}
+		}
+	}
+}
+
+func (w *WordValues) WordsHandler(wr http.ResponseWriter, r *http.Request) {
+	outdata, err := json.Marshal(w)
+	if err != nil {
+		log.Printf("Unable to convert words to JSON: %v", err)
+		wr.WriteHeader(500)
+		io.WriteString(wr, "{\"error\" : \"Unable to provide words\"}")
+		return
+	}
+
+	wr.WriteHeader(200)
+	wr.Write(outdata)
 }
 
 func main() {
@@ -143,6 +187,7 @@ func main() {
 	apiClient := twitapi.NewAPIClient(cfg)
 	wordNums := NewWordValues()
 	searchFilter := "\"terraform cloud\""
+	port := ":8080"
 
 	// Read in seed file if it exists, else call SeedData to get data from last 7 days
 	if _, err := os.Stat("seed.conf"); err == nil {
@@ -154,23 +199,12 @@ func main() {
 
 	go StreamTweets(ctx, searchFilter, apiClient, ParseTweet, wordNums)
 
-	// Save the data to seed.conf every 10 minutes.
-	ticker := time.NewTicker(10 * time.Minute)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			wordNums.RLock()
-			outdata, err := json.Marshal(wordNums)
-			wordNums.RUnlock()
-			if err != nil {
-				fmt.Printf("Unable to save word values to seed file: %v", err)
-			} else {
-				err = ioutil.WriteFile("seed.conf", outdata, 0644)
-				if err != nil {
-					fmt.Printf("Unable to save word values to seed file: %v", err)
-				}
-			}
-		}
-	}
+	go SaveData(wordNums)
+
+	// Serve the API
+	r := mux.NewRouter()
+	r.HandleFunc("/words", wordNums.WordsHandler)
+	log.Printf("Listening on port %v", port)
+	http.ListenAndServe(port, r)
+
 }
