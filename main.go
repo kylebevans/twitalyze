@@ -1,3 +1,5 @@
+// Twitalyze searches twitter for a filter and creates a word to frequency mapping.
+// It serves the data over an API that a frontend can read from to create a word cloud.
 package main
 
 import (
@@ -15,17 +17,20 @@ import (
 	"github.com/kylebevans/twitapi"
 )
 
+// Map that holds words with the frequency of occurrence in tweets.
 type WordValues struct {
 	sync.RWMutex
 	WV map[string]int `json:"wordvalues"`
 }
 
+// Initialize a WordValues and return a pointer.
 func NewWordValues() *WordValues {
 	var w WordValues
 	w.WV = make(map[string]int)
 	return &w
 }
 
+// Grab tweet data from the last 7 days to seed the word cloud.
 func SeedData(ctx context.Context, s string, apiClient *twitapi.APIClient, w *WordValues) {
 	var searchOpts *twitapi.TweetsRecentSearchOpts
 	searchOpts = new(twitapi.TweetsRecentSearchOpts)
@@ -64,9 +69,9 @@ func ParseTweet(tweet string, w *WordValues) {
 	tweetTokens := strings.Split(cleanTweet, " ")
 
 	for _, v := range tweetTokens {
-		// Discard words above 16 letters, below 3 letters, or equal to "terrform" or "cloud"
-		if len(v) > 16 || len(v) < 3 || v == "terraform" || v == "cloud" {
-			break
+		// Discard words above 16 letters, below 3 letters, and several undesirable words.
+		if len(v) > 16 || len(v) < 3 || v == "terraform" || v == "cloud" || v == "" || v == "https" {
+			continue
 		}
 		w.Lock()
 		w.WV[v]++
