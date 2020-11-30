@@ -224,6 +224,7 @@ func StreamTweets(ctx context.Context, s string, apiClient *twitapi.APIClient, f
 		for {
 			err = <-errs
 			if err != nil {
+				time.Sleep(15 * time.Minute) // probably hit API limit
 				break
 			}
 			tweet = <-tweets
