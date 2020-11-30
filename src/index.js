@@ -38,10 +38,7 @@ class WordCloud extends React.Component {
         (result) => {
           this.setState({
             isLoaded: true,
-            wordValues: result.map(wordValues => ({
-              text: wordValues.text,
-              value: wordValues.value,
-            }))
+            wordValues: result.wordValues,
           });
         },
         // Note: it's important to handle errors here
