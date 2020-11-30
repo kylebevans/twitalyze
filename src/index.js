@@ -63,7 +63,7 @@ class WordCloud extends React.Component {
       return (
         <div>
           <div style={{ height: 400, width: 600 }}>
-            <ReactWordcloud options={options} words={wordValues} />
+            <ReactWordcloud options={options} words={wordValues.wordValues} />
           </div>
         </div>
       );
