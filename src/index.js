@@ -32,7 +32,7 @@ class WordCloud extends React.Component {
   }
 
   componentDidMount() {
-    fetch("http://kyle.evans.dev/words")
+    fetch("https://kyle.evans.dev/words")
       .then(res => res.json())
       .then(
         (result) => {
