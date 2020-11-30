@@ -74,4 +74,4 @@ class WordCloud extends React.Component {
 
 
 const rootElement = document.getElementById("root");
-ReactDOM.render(<App />, rootElement);
+ReactDOM.render(<WordCloud />, rootElement);
