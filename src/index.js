@@ -38,7 +38,7 @@ class WordCloud extends React.Component {
         (result) => {
           this.setState({
             isLoaded: true,
-            wordValues: result.wordValues,
+            wordValues: result.wordvalues,
           });
         },
         // Note: it's important to handle errors here
@@ -63,7 +63,7 @@ class WordCloud extends React.Component {
       return (
         <div>
           <div style={{ height: 400, width: 600 }}>
-            <ReactWordcloud options={options} words={wordValues.wordValues} />
+            <ReactWordcloud options={options} words={wordValues} />
           </div>
         </div>
       );
