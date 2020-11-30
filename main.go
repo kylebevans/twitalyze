@@ -204,6 +204,13 @@ func main() {
 	// Serve the API
 	r := mux.NewRouter()
 	r.HandleFunc("/words", wordNums.WordsHandler)
+
+	buildHandler := http.FileServer(http.Dir("build/"))
+	r.PathPrefix("/").Handler(buildHandler)
+
+	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir("build/static")))
+	r.PathPrefix("/static/").Handler(staticHandler)
+
 	log.Printf("Listening on port %v", port)
 	http.ListenAndServe(port, r)
 

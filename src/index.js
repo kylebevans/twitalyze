@@ -5,8 +5,6 @@ import ReactWordcloud from "react-wordcloud";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/animations/scale.css";
 
-import words from "./words";
-
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
   enableTooltip: true,
@@ -34,13 +32,13 @@ class WordCloud extends React.Component {
   }
 
   componentDidMount() {
-    fetch("https://api.example.com/items")
+    fetch("http://kyle.evans.dev/words")
       .then(res => res.json())
       .then(
         (result) => {
           this.setState({
             isLoaded: true,
-            items: result.items
+            wordvalues: result.wordvalues
           });
         },
         // Note: it's important to handle errors here
@@ -63,28 +61,17 @@ class WordCloud extends React.Component {
       return <div>Loading...</div>;
     } else {
       return (
-        <ul>
-          {items.map(item => (
-            <li key={item.id}>
-              {item.name} {item.price}
-            </li>
-          ))}
-        </ul>
+        <div>
+          <p>Configure options in the code editor!</p>
+          <div style={{ height: 400, width: 600 }}>
+            <ReactWordcloud options={options} words={wordvalues} />
+          </div>
+        </div>
       );
     }
   }
 }
 
-function App() {
-  return (
-    <div>
-      <p>Configure options in the code editor!</p>
-      <div style={{ height: 400, width: 600 }}>
-        <ReactWordcloud options={options} words={words} />
-      </div>
-    </div>
-  );
-}
 
 const rootElement = document.getElementById("root");
 ReactDOM.render(<App />, rootElement);

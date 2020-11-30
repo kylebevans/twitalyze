@@ -2,15 +2,20 @@
   "name": "options",
   "version": "1.0.0",
   "description": "Supports rich customization options",
-  "keywords": ["react-wordcloud", "d3js", "visualization", "react"],
+  "keywords": [
+    "react-wordcloud",
+    "d3js",
+    "visualization",
+    "react"
+  ],
   "main": "src/index.js",
   "dependencies": {
-    "react": "16.8.6",
     "react-dom": "16.8.6",
-    "react-scripts": "3.0.1",
+    "react-scripts": "^4.0.1",
     "react-wordcloud": "1.2.7"
   },
   "devDependencies": {
+    "react": "^16.14.0",
     "typescript": "3.3.3"
   },
   "scripts": {
@@ -19,5 +24,10 @@
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },
-  "browserslist": [">0.2%", "not dead", "not ie <= 11", "not op_mini all"]
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
 }
