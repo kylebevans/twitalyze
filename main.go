@@ -28,11 +28,82 @@ type WordValues struct {
 	WV map[string]int `json:"wordvalues"`
 }
 
+type TextValues struct {
+	Text  string `json:"text"`
+	Value int    `json:"value"`
+}
+
 // Initialize a WordValues and return a pointer.
 func NewWordValues() *WordValues {
 	var w WordValues
 	w.WV = make(map[string]int)
 	return &w
+}
+
+// MarshalJSON marshals JSON for a WordValues type.
+func (w *WordValues) MarshalJSON() ([]byte, error) {
+	var wordval struct {
+		ForReact []TextValues `json:"wordvalues"`
+	}
+
+	w.RLock()
+	for k, v := range w.WV {
+		wordval.ForReact = append(wordval.ForReact, TextValues{k, v})
+	}
+	w.RUnlock()
+
+	return json.Marshal(wordval)
+}
+
+// UnmarshalJSON unmarshals JSON for a WordValues type.
+func (w *WordValues) UnmarshalJSON(b []byte) (err error) {
+	var wordval struct {
+		ForReact []TextValues `json:"wordvalues"`
+	}
+	if err = json.Unmarshal(b, &wordval); err != nil {
+		return
+	}
+	w.Lock()
+	for _, v := range wordval.ForReact {
+		w.WV[v.Text] = v.Value
+	}
+	w.Unlock()
+	return
+}
+
+// SaveData saves the data to seed.conf every 10 minutes.
+func SaveData(w *WordValues) {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			w.RLock()
+			outdata, err := json.Marshal(w)
+			w.RUnlock()
+			if err != nil {
+				log.Printf("Unable to save word values to seed file: %v", err)
+			} else {
+				err = ioutil.WriteFile("seed.conf", outdata, 0644)
+				if err != nil {
+					log.Printf("Unable to save word values to seed file: %v", err)
+				}
+			}
+		}
+	}
+}
+
+func (w *WordValues) WordsHandler(wr http.ResponseWriter, r *http.Request) {
+	outdata, err := w.MarshalJSON()
+	if err != nil {
+		log.Printf("Unable to convert words to JSON: %v", err)
+		wr.WriteHeader(500)
+		io.WriteString(wr, "{\"error\" : \"Unable to provide words\"}")
+		return
+	}
+
+	wr.WriteHeader(200)
+	wr.Write(outdata)
 }
 
 // Grab tweet data from the last 7 days to seed the word cloud.
@@ -143,41 +214,6 @@ func StreamTweets(ctx context.Context, s string, apiClient *twitapi.APIClient, f
 		}
 		log.Println(err)
 	}
-}
-
-// SaveData saves the data to seed.conf every 10 minutes.
-func SaveData(w *WordValues) {
-	ticker := time.NewTicker(10 * time.Minute)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			w.RLock()
-			outdata, err := json.Marshal(w)
-			w.RUnlock()
-			if err != nil {
-				log.Printf("Unable to save word values to seed file: %v", err)
-			} else {
-				err = ioutil.WriteFile("seed.conf", outdata, 0644)
-				if err != nil {
-					log.Printf("Unable to save word values to seed file: %v", err)
-				}
-			}
-		}
-	}
-}
-
-func (w *WordValues) WordsHandler(wr http.ResponseWriter, r *http.Request) {
-	outdata, err := json.Marshal(w)
-	if err != nil {
-		log.Printf("Unable to convert words to JSON: %v", err)
-		wr.WriteHeader(500)
-		io.WriteString(wr, "{\"error\" : \"Unable to provide words\"}")
-		return
-	}
-
-	wr.WriteHeader(200)
-	wr.Write(outdata)
 }
 
 func main() {
