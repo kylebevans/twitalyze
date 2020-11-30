@@ -28,6 +28,10 @@ type WordValues struct {
 	WV map[string]int `json:"wordvalues"`
 }
 
+type WordValuesJson struct {
+	WV map[string]int `json:"wordvalues"`
+}
+
 type TextValues struct {
 	Text  string `json:"text"`
 	Value int    `json:"value"`
@@ -40,34 +44,37 @@ func NewWordValues() *WordValues {
 	return &w
 }
 
-// MarshalJSON marshals JSON for a WordValues type.
-func (w *WordValues) MarshalJSON() ([]byte, error) {
+// Initialize a WordValuesJson and return a pointer.
+func NewWordValuesJson() WordValuesJson {
+	var w WordValuesJson
+	w.WV = make(map[string]int)
+	return w
+}
+
+// MarshalJSON marshals JSON for a WordValuesJson type.
+func (w WordValuesJson) MarshalJSON() ([]byte, error) {
 	var wordval struct {
 		ForReact []TextValues `json:"wordvalues"`
 	}
 
-	w.RLock()
 	for k, v := range w.WV {
 		wordval.ForReact = append(wordval.ForReact, TextValues{k, v})
 	}
-	w.RUnlock()
 
 	return json.Marshal(wordval)
 }
 
-// UnmarshalJSON unmarshals JSON for a WordValues type.
-func (w *WordValues) UnmarshalJSON(b []byte) (err error) {
+// UnmarshalJSON unmarshals JSON for a WordValuesJson type.
+func (w WordValuesJson) UnmarshalJSON(b []byte) (err error) {
 	var wordval struct {
 		ForReact []TextValues `json:"wordvalues"`
 	}
 	if err = json.Unmarshal(b, &wordval); err != nil {
 		return
 	}
-	w.Lock()
 	for _, v := range wordval.ForReact {
 		w.WV[v.Text] = v.Value
 	}
-	w.Unlock()
 	return
 }
 
@@ -93,8 +100,18 @@ func SaveData(w *WordValues) {
 	}
 }
 
+// WordsHandler produces the GET /words API.
 func (w *WordValues) WordsHandler(wr http.ResponseWriter, r *http.Request) {
-	outdata, err := w.MarshalJSON()
+	// Make a copy of w in order to customize the JSON
+	var tempwvj WordValuesJson
+	tempwvj = NewWordValuesJson()
+	w.RLock()
+	for k, v := range w.WV {
+		tempwvj.WV[k] = v
+	}
+	w.RUnlock()
+
+	outdata, err := tempwvj.MarshalJSON()
 	if err != nil {
 		log.Printf("Unable to convert words to JSON: %v", err)
 		wr.WriteHeader(500)
@@ -228,7 +245,9 @@ func main() {
 	// Read in seed file if it exists, else call SeedData to get data from last 7 days
 	if _, err := os.Stat("seed.conf"); err == nil {
 		seed, _ := ioutil.ReadFile("seed.conf")
+		wordNums.Lock()
 		_ = json.Unmarshal(seed, wordNums)
+		wordNums.Unlock()
 	} else {
 		SeedData(ctx, searchFilter, apiClient, wordNums)
 	}
